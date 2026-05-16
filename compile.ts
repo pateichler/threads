@@ -8,9 +8,10 @@ import * as chokidar from "chokidar";
 interface Thread {
   id: string;
   slug: string;
-  parents: string[];
+  declaredThreads: string[]; // child IDs from frontmatter `threads` key
   contentHtml: string;
-  children: string[];
+  children: string[]; // resolved + sorted
+  parents: string[];  // inverted from other threads' declaredThreads
 }
 
 type ThreadMap = Record<string, Thread>;
@@ -66,23 +67,25 @@ function readThreads(inputDir: string): ThreadMap {
     threads[id] = {
       id,
       slug: typeof data.slug === "string" ? data.slug : "",
-      parents: Array.isArray(data.parents)
-        ? data.parents.map((p: string) => parseWikilink(p))
+      declaredThreads: Array.isArray(data.threads)
+        ? data.threads.map((c: string) => parseWikilink(c))
         : [],
       contentHtml: marked(content) as string,
       children: [],
+      parents: [],
     };
   }
 
   return threads;
 }
 
-// Pass 1 (continued): invert parent declarations into child lists
+// Pass 1 (continued): resolve declaredThreads into children, invert to build parents
 function buildChildLists(threads: ThreadMap): void {
   for (const thread of Object.values(threads)) {
-    for (const parentId of thread.parents) {
-      if (threads[parentId]) {
-        threads[parentId].children.push(thread.id);
+    for (const childId of thread.declaredThreads) {
+      if (threads[childId]) {
+        thread.children.push(childId);
+        threads[childId].parents.push(thread.id);
       }
     }
   }

@@ -26,9 +26,9 @@ node compile.js --input ./notes --output ./site --template ./template --serve --
 
 ```yaml
 ---
-slug: /my-thread/     # URL path. Omit or leave blank for no standalone page.
-parents:
-  - "[[some-note]]"   # Wikilink-style references by filename (no extension).
+slug: /my-thread/    # URL path. Omit or leave blank for no standalone page.
+threads:
+  - "[[some-note]]"  # Wikilink-style references to child threads by filename.
 ---
 ```
 
