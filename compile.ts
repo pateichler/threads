@@ -93,18 +93,22 @@ function buildChildLists(threads: ThreadMap): void {
 
 function renderChild(
   childId: string,
+  currentParentId: string,
   threads: ThreadMap,
   childTemplate: string
 ): string {
   const child = threads[childId];
-  const validParents = child.parents.filter((p) => threads[p]);
-  const hasMultipleParents = validParents.length > 1;
 
-  let parentLinks = "";
-  if (hasMultipleParents && child.slug) {
-    const { href } = slugToOutputPath(child.slug);
-    parentLinks = `<a href="${href}">permalink</a>`;
-  }
+  // Links to the child's other parents (those with slugs, excluding the current page)
+  const otherParentLinks = child.parents
+    .filter((p) => p !== currentParentId && threads[p]?.slug)
+    .map((p) => {
+      const { href } = slugToOutputPath(threads[p].slug);
+      return `<a href="${href}">${threads[p].id}</a>`;
+    })
+    .join(" ");
+
+  const parentLinks = otherParentLinks;
 
   return childTemplate
     .replace("{{CONTENT}}", child.contentHtml)
@@ -134,7 +138,7 @@ function renderThreads(
     if (!thread.slug) continue;
 
     const childrenHtml = thread.children
-      .map((childId) => renderChild(childId, threads, childTemplate))
+      .map((childId) => renderChild(childId, thread.id, threads, childTemplate))
       .join("\n");
 
     const html = threadTemplate
