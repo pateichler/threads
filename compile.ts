@@ -235,13 +235,23 @@ function main(): void {
 
   const broadcast = startDevServer(output, port);
 
+  // Debounce recompilation to handle editors that use atomic writes (unlink +
+  // add), which would otherwise trigger a compile mid-rename with a missing file.
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  function scheduleRecompile() {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      compile(input, output, threadTemplate, childTemplate);
+      broadcast();
+    }, 100);
+  }
+
   chokidar
     .watch(input, { depth: 0, ignoreInitial: true })
     .on("all", (_, filePath) => {
       if (typeof filePath !== "string" || !filePath.endsWith(".md")) return;
       console.log(`changed: ${path.basename(filePath)}`);
-      compile(input, output, threadTemplate, childTemplate);
-      broadcast();
+      scheduleRecompile();
     });
 }
 
