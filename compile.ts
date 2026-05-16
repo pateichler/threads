@@ -102,12 +102,25 @@ function renderChild(
 
   let parentLinks = "";
   if (hasMultipleParents && child.slug) {
-    parentLinks = `<a href="/${child.slug}.html">permalink</a>`;
+    const { href } = slugToOutputPath(child.slug);
+    parentLinks = `<a href="${href}">permalink</a>`;
   }
 
   return childTemplate
     .replace("{{CONTENT}}", child.contentHtml)
     .replace("{{PARENT_LINKS}}", parentLinks);
+}
+
+// Converts a slug like "/about/", "/about.html", or "/" into a relative file
+// path and its corresponding href, following Eleventy's permalink conventions.
+function slugToOutputPath(slug: string): { filePath: string; href: string } {
+  let p = slug.startsWith("/") ? slug.slice(1) : slug;
+  if (p === "" || p.endsWith("/")) {
+    p = p + "index.html";
+  } else if (!path.extname(p)) {
+    p = p + ".html";
+  }
+  return { filePath: p, href: "/" + p };
 }
 
 // Pass 2: render one HTML file per thread with a slug
@@ -117,10 +130,6 @@ function renderThreads(
   threadTemplate: string,
   childTemplate: string
 ): void {
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-
   for (const thread of Object.values(threads)) {
     if (!thread.slug) continue;
 
@@ -133,7 +142,9 @@ function renderThreads(
       .replace("{{CONTENT}}", thread.contentHtml)
       .replace("{{CHILDREN}}", childrenHtml);
 
-    const outPath = path.join(outputDir, `${thread.slug}.html`);
+    const { filePath } = slugToOutputPath(thread.slug);
+    const outPath = path.join(outputDir, filePath);
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
     fs.writeFileSync(outPath, html, "utf8");
     console.log(`wrote ${outPath}`);
   }
