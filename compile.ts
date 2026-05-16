@@ -146,10 +146,19 @@ function renderThreads(
       .map((childId) => renderChild(childId, thread.id, threads, childTemplate))
       .join("\n");
 
+    const parentsHtml = thread.parents
+      .filter((p) => threads[p]?.slug)
+      .map((p) => {
+        const { href } = slugToOutputPath(threads[p].slug);
+        return `<a href="${href}">${threads[p].id}</a>`;
+      })
+      .join(" ");
+
     const html = threadTemplate
       .replace(/\{\{TITLE\}\}/g, thread.id)
       .replace("{{CONTENT}}", thread.contentHtml)
-      .replace("{{CHILDREN}}", childrenHtml);
+      .replace("{{CHILDREN}}", childrenHtml)
+      .replace("{{PARENTS}}", parentsHtml);
 
     const { filePath } = slugToOutputPath(thread.slug);
     const outPath = path.join(outputDir, filePath);
