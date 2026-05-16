@@ -2,5 +2,5 @@ node_modules/
 compile.js
 preprocess.js
 
-output/
+test/
 .claude/

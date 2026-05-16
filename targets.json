@@ -1,6 +1,0 @@
-{
-    "test": {
-        "name": ">Test",
-        "output_path": "./test-input/"
-    }
-}
