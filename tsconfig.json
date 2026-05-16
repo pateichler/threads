@@ -6,5 +6,5 @@
     "skipLibCheck": true,
     "esModuleInterop": true
   },
-  "include": ["compile.ts"]
+  "include": ["compile.ts", "preprocess.ts"]
 }

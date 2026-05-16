@@ -4,7 +4,8 @@
   "description": "Markdown to static HTML compiler for personal threads",
   "scripts": {
     "build": "tsc",
-    "compile": "tsc && node compile.js"
+    "compile": "tsc && node compile.js",
+    "sync": "tsc && node preprocess.js sync"
   },
   "dependencies": {
     "chokidar": "^3.6.0",

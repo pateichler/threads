@@ -7,7 +7,8 @@ import * as chokidar from "chokidar";
 
 interface Thread {
   id: string;
-  slug: string;             // auto-generated from filename, e.g. "threads/my-note"
+  slug: string;              // auto-generated from filename, e.g. "threads/my-note"
+  targets: string[];         // from frontmatter `targets` key
   declaredThreads: string[]; // child IDs from frontmatter `threads` key
   contentHtml: string;
   children: string[]; // resolved + sorted
@@ -72,6 +73,7 @@ function readThreads(inputDir: string): ThreadMap {
     threads[id] = {
       id,
       slug: toSlug(id),
+      targets: Array.isArray(data.targets) ? data.targets : [],
       declaredThreads: Array.isArray(data.threads)
         ? data.threads.map((c: string) => parseWikilink(c))
         : [],
@@ -148,6 +150,8 @@ function renderThreads(
   childTemplate: string
 ): void {
   for (const thread of Object.values(threads)) {
+    if (thread.targets.length === 0) continue;
+
     const childrenHtml = thread.children
       .map((childId) => renderChild(childId, thread.id, threads, childTemplate))
       .join("\n");
