@@ -1,7 +1,9 @@
 import * as fs from "fs";
+import * as http from "http";
 import * as path from "path";
 import matter from "gray-matter";
 import { marked } from "marked";
+import * as chokidar from "chokidar";
 
 interface Thread {
   id: string;
@@ -13,22 +15,38 @@ interface Thread {
 
 type ThreadMap = Record<string, Thread>;
 
-function parseArgs(): { input: string; output: string; template: string } {
+interface Args {
+  input: string;
+  output: string;
+  template: string;
+  serve: boolean;
+  port: number;
+}
+
+function parseArgs(): Args {
   const args = process.argv.slice(2);
-  const flags: Record<string, string> = {};
+  const flags: Record<string, string | boolean> = {};
   for (let i = 0; i < args.length; i++) {
-    if (args[i].startsWith("--")) {
+    if (args[i] === "--serve") {
+      flags.serve = true;
+    } else if (args[i].startsWith("--")) {
       flags[args[i].slice(2)] = args[i + 1];
       i++;
     }
   }
   if (!flags.input || !flags.output || !flags.template) {
     console.error(
-      "Usage: node compile.js --input <dir> --output <dir> --template <dir>"
+      "Usage: node compile.js --input <dir> --output <dir> --template <dir> [--serve] [--port <n>]"
     );
     process.exit(1);
   }
-  return flags as { input: string; output: string; template: string };
+  return {
+    input: flags.input as string,
+    output: flags.output as string,
+    template: flags.template as string,
+    serve: flags.serve === true,
+    port: flags.port ? parseInt(flags.port as string, 10) : 8080,
+  };
 }
 
 function parseWikilink(ref: string): string {
@@ -121,11 +139,71 @@ function renderThreads(
   }
 }
 
-function main(): void {
-  const { input, output, template } = parseArgs();
-
-  const threads = readThreads(input);
+function compile(
+  inputDir: string,
+  outputDir: string,
+  threadTemplate: string,
+  childTemplate: string
+): void {
+  const threads = readThreads(inputDir);
   buildChildLists(threads);
+  renderThreads(threads, outputDir, threadTemplate, childTemplate);
+}
+
+// Injected into served HTML pages to trigger a reload on SSE message
+const SSE_SCRIPT = `<script>new EventSource('/sse').onmessage = () => location.reload();</script>`;
+
+function startDevServer(outputDir: string, port: number): () => void {
+  const clients: http.ServerResponse[] = [];
+
+  function broadcast(): void {
+    for (const client of clients) {
+      client.write("data: reload\n\n");
+    }
+  }
+
+  const server = http.createServer((req, res) => {
+    if (req.url === "/sse") {
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      });
+      clients.push(res);
+      req.on("close", () => {
+        const i = clients.indexOf(res);
+        if (i !== -1) clients.splice(i, 1);
+      });
+      return;
+    }
+
+    let urlPath = req.url?.split("?")[0] ?? "/";
+    if (urlPath === "/") urlPath = "/index.html";
+    const filePath = path.join(outputDir, urlPath);
+
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(404);
+        res.end("Not found");
+        return;
+      }
+      const isHtml = filePath.endsWith(".html");
+      res.writeHead(200, {
+        "Content-Type": isHtml ? "text/html" : "application/octet-stream",
+      });
+      const body = isHtml
+        ? data.toString().replace("</body>", `${SSE_SCRIPT}</body>`)
+        : data;
+      res.end(body);
+    });
+  });
+
+  server.listen(port, () => console.log(`serving http://localhost:${port}`));
+  return broadcast;
+}
+
+function main(): void {
+  const { input, output, template, serve, port } = parseArgs();
 
   const threadTemplate = fs.readFileSync(
     path.join(template, "thread.html"),
@@ -136,7 +214,20 @@ function main(): void {
     "utf8"
   );
 
-  renderThreads(threads, output, threadTemplate, childTemplate);
+  compile(input, output, threadTemplate, childTemplate);
+
+  if (!serve) return;
+
+  const broadcast = startDevServer(output, port);
+
+  chokidar
+    .watch(input, { depth: 0, ignoreInitial: true })
+    .on("all", (_, filePath) => {
+      if (typeof filePath !== "string" || !filePath.endsWith(".md")) return;
+      console.log(`changed: ${path.basename(filePath)}`);
+      compile(input, output, threadTemplate, childTemplate);
+      broadcast();
+    });
 }
 
 main();
