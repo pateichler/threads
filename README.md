@@ -26,16 +26,12 @@ node compile.js --input ./notes --output ./site --template ./template --serve --
 
 ```yaml
 ---
-slug: /my-thread/    # URL path. Omit or leave blank for no standalone page.
 threads:
   - "[[some-note]]"  # Wikilink-style references to child threads by filename.
 ---
 ```
 
-Slug conventions follow Eleventy's permalink style:
-- `/` → `index.html`
-- `/about/` → `about/index.html`
-- `/about.html` → `about.html`
+Every thread generates a page at `threads/{{url-safe-filename}}.html`. The URL-safe name is the filename lowercased with spaces replaced by hyphens.
 
 ## Templates
 
