@@ -99,8 +99,14 @@ function renderChild(
 ): string {
   const child = threads[childId];
 
+  const hasOwnChildren = child.children.length > 0;
+  const title =
+    hasOwnChildren && child.slug
+      ? `<a href="${slugToOutputPath(child.slug).href}">${child.id}</a>`
+      : child.id;
+
   // Links to the child's other parents (those with slugs, excluding the current page)
-  const otherParentLinks = child.parents
+  const parentLinks = child.parents
     .filter((p) => p !== currentParentId && threads[p]?.slug)
     .map((p) => {
       const { href } = slugToOutputPath(threads[p].slug);
@@ -108,9 +114,8 @@ function renderChild(
     })
     .join(" ");
 
-  const parentLinks = otherParentLinks;
-
   return childTemplate
+    .replace("{{TITLE}}", title)
     .replace("{{CONTENT}}", child.contentHtml)
     .replace("{{PARENT_LINKS}}", parentLinks);
 }
