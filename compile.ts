@@ -24,6 +24,7 @@ export interface CompileOptions {
   serve: boolean;
   port: number;
   index: string | null;
+  base: string;
 }
 
 function parseWikilink(ref: string): string {
@@ -81,21 +82,22 @@ function renderChild(
   childId: string,
   currentParentId: string,
   threads: ThreadMap,
-  childTemplate: string
+  childTemplate: string,
+  base: string
 ): string {
   const child = threads[childId];
 
   const hasOwnChildren = child.children.length > 0;
   const title =
     hasOwnChildren && child.slug
-      ? `<a href="${slugToOutputPath(child.slug).href}">${child.id}</a>`
+      ? `<a href="${slugToOutputPath(child.slug, base).href}">${child.id}</a>`
       : child.id;
 
   // Links to the child's other parents (those with slugs, excluding the current page)
   const parentLinks = child.parents
     .filter((p) => p !== currentParentId && threads[p]?.slug)
     .map((p) => {
-      const { href } = slugToOutputPath(threads[p].slug);
+      const { href } = slugToOutputPath(threads[p].slug, base);
       return `<a href="${href}">${threads[p].id}</a>`;
     })
     .join(" ");
@@ -106,9 +108,9 @@ function renderChild(
     .replace("{{PARENT_LINKS}}", parentLinks);
 }
 
-function slugToOutputPath(slug: string): { filePath: string; href: string } {
+function slugToOutputPath(slug: string, base = ""): { filePath: string; href: string } {
   const p = path.extname(slug) ? slug : slug + ".html";
-  return { filePath: p, href: "/" + p };
+  return { filePath: p, href: base + "/" + p };
 }
 
 // Pass 2: render one HTML file per thread with a slug
@@ -116,19 +118,20 @@ function renderThreads(
   threads: ThreadMap,
   outputDir: string,
   threadTemplate: string,
-  childTemplate: string
+  childTemplate: string,
+  base: string
 ): void {
   for (const thread of Object.values(threads)) {
     if (thread.targets.length === 0) continue;
 
     const childrenHtml = thread.children
-      .map((childId) => renderChild(childId, thread.id, threads, childTemplate))
+      .map((childId) => renderChild(childId, thread.id, threads, childTemplate, base))
       .join("\n");
 
     const parentsHtml = thread.parents
       .filter((p) => threads[p]?.slug)
       .map((p) => {
-        const { href } = slugToOutputPath(threads[p].slug);
+        const { href } = slugToOutputPath(threads[p].slug, base);
         return `<a href="${href}">${threads[p].id}</a>`;
       })
       .join(" ");
@@ -139,7 +142,7 @@ function renderThreads(
       .replace("{{CHILDREN}}", childrenHtml)
       .replace("{{PARENTS}}", parentsHtml);
 
-    const { filePath } = slugToOutputPath(thread.slug);
+    const { filePath } = slugToOutputPath(thread.slug, base);
     const outPath = path.join(outputDir, filePath);
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
     fs.writeFileSync(outPath, html, "utf8");
@@ -152,11 +155,12 @@ function compile(
   outputDir: string,
   threadTemplate: string,
   childTemplate: string,
-  indexId: string | null
+  indexId: string | null,
+  base: string
 ): void {
   const threads = readThreads(inputDir);
   buildChildLists(threads);
-  renderThreads(threads, outputDir, threadTemplate, childTemplate);
+  renderThreads(threads, outputDir, threadTemplate, childTemplate, base);
 
   if (indexId) {
     const thread = threads[indexId];
@@ -164,7 +168,7 @@ function compile(
       console.error(`--index: thread "${indexId}" not found`);
       return;
     }
-    const { filePath } = slugToOutputPath(thread.slug);
+    const { filePath } = slugToOutputPath(thread.slug, base);
     const src = path.join(outputDir, filePath);
     const dest = path.join(outputDir, "index.html");
     fs.copyFileSync(src, dest);
@@ -225,7 +229,7 @@ function startDevServer(outputDir: string, port: number): () => void {
 }
 
 export function run(options: CompileOptions): void {
-  const { input, output, template, serve, port, index } = options;
+  const { input, output, template, serve, port, index, base } = options;
 
   const threadTemplate = fs.readFileSync(
     path.join(template, "thread.html"),
@@ -236,7 +240,7 @@ export function run(options: CompileOptions): void {
     "utf8"
   );
 
-  compile(input, output, threadTemplate, childTemplate, index);
+  compile(input, output, threadTemplate, childTemplate, index, base);
 
   if (!serve) return;
 
@@ -248,7 +252,7 @@ export function run(options: CompileOptions): void {
   function scheduleRecompile() {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      compile(input, output, threadTemplate, childTemplate, index);
+      compile(input, output, threadTemplate, childTemplate, index, base);
       broadcast();
     }, 100);
   }

@@ -29,13 +29,14 @@ switch (subcommand) {
   case "compile": {
     const { flags } = parseFlags(rest);
     if (!flags.input || !flags.output)
-      die(`Usage: ${bin} compile --input <dir> --output <dir> [--template <dir>] [--serve] [--port <n>] [--index <id>]`);
+      die(`Usage: ${bin} compile --input <dir> --output <dir> [--template <dir>] [--base <path>] [--serve] [--port <n>] [--index <id>]`);
 
     const defaultTemplate = path.join(__dirname, "..", "default-template");
     runCompile({
       input: flags.input,
       output: flags.output,
       template: flags.template ?? defaultTemplate,
+      base: flags.base?.replace(/\/+$/, "") ?? "",
       serve: rest.includes("--serve"),
       port: flags.port ? parseInt(flags.port, 10) : 8080,
       index: flags.index ?? null,
