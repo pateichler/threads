@@ -38,16 +38,17 @@ function parseArgs(): Args {
       i++;
     }
   }
-  if (!flags.input || !flags.output || !flags.template) {
+  if (!flags.input || !flags.output) {
     console.error(
-      "Usage: node compile.js --input <dir> --output <dir> --template <dir> [--serve] [--port <n>]"
+      "Usage: node compile.js --input <dir> --output <dir> [--template <dir>] [--serve] [--port <n>]"
     );
     process.exit(1);
   }
+  const defaultTemplate = path.join(__dirname, "..", "default-template");
   return {
     input: flags.input as string,
     output: flags.output as string,
-    template: flags.template as string,
+    template: flags.template ? (flags.template as string) : defaultTemplate,
     serve: flags.serve === true,
     port: flags.port ? parseInt(flags.port as string, 10) : 8080,
     index: flags.index ? (flags.index as string) : null,
