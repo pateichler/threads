@@ -1,12 +1,17 @@
 {
-  "name": "threads",
-  "version": "1.0.0",
+  "name": "@pateichler/threads",
+  "version": "0.1.0",
   "description": "Markdown to static HTML compiler for personal threads",
+  "files": ["dist"],
+  "bin": {
+    "threads": "dist/compile.js",
+    "threads-pre": "dist/preprocess.js"
+  },
   "scripts": {
     "build": "tsc",
-    "compile": "tsc && node compile.js",
-    "clean": "tsc && node preprocess.js clean",
-    "sync": "tsc && node preprocess.js sync"
+    "compile": "tsc && node dist/compile.js",
+    "clean": "tsc && node dist/preprocess.js clean",
+    "sync": "tsc && node dist/preprocess.js sync"
   },
   "dependencies": {
     "chokidar": "^3.6.0",
