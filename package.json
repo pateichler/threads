@@ -1,8 +1,11 @@
 {
   "name": "@pateichler/threads",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Markdown to static HTML compiler for personal threads",
-  "files": ["dist", "default-template"],
+  "files": [
+    "dist",
+    "default-template"
+  ],
   "bin": {
     "threads": "dist/cli.js"
   },
