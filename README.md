@@ -1,5 +1,7 @@
 # threads
 
+> This project was built in collaboration with [Claude](https://claude.ai) (Anthropic). The code and documentation were written with AI assistance.
+
 A minimal static site compiler for a personal website built around the idea of *threads* — short, interconnected notes that link together into a web of thought.
 
 ## Concept
