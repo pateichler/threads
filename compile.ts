@@ -23,6 +23,7 @@ interface Args {
   template: string;
   serve: boolean;
   port: number;
+  index: string | null; // thread ID to copy to index.html
 }
 
 function parseArgs(): Args {
@@ -48,6 +49,7 @@ function parseArgs(): Args {
     template: flags.template as string,
     serve: flags.serve === true,
     port: flags.port ? parseInt(flags.port as string, 10) : 8080,
+    index: flags.index ? (flags.index as string) : null,
   };
 }
 
@@ -56,6 +58,7 @@ function parseWikilink(ref: string): string {
 }
 
 function toSlug(id: string): string {
+  if (id === "_index") return "index";
   const name = id.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
   return `threads/${name}`;
 }
@@ -182,11 +185,25 @@ function compile(
   inputDir: string,
   outputDir: string,
   threadTemplate: string,
-  childTemplate: string
+  childTemplate: string,
+  indexId: string | null
 ): void {
   const threads = readThreads(inputDir);
   buildChildLists(threads);
   renderThreads(threads, outputDir, threadTemplate, childTemplate);
+
+  if (indexId) {
+    const thread = threads[indexId];
+    if (!thread) {
+      console.error(`--index: thread "${indexId}" not found`);
+      return;
+    }
+    const { filePath } = slugToOutputPath(thread.slug);
+    const src = path.join(outputDir, filePath);
+    const dest = path.join(outputDir, "index.html");
+    fs.copyFileSync(src, dest);
+    console.log(`wrote ${dest}`);
+  }
 }
 
 // Injected into served HTML pages to trigger a reload on SSE message
@@ -242,7 +259,7 @@ function startDevServer(outputDir: string, port: number): () => void {
 }
 
 function main(): void {
-  const { input, output, template, serve, port } = parseArgs();
+  const { input, output, template, serve, port, index } = parseArgs();
 
   const threadTemplate = fs.readFileSync(
     path.join(template, "thread.html"),
@@ -253,7 +270,7 @@ function main(): void {
     "utf8"
   );
 
-  compile(input, output, threadTemplate, childTemplate);
+  compile(input, output, threadTemplate, childTemplate, index);
 
   if (!serve) return;
 
@@ -265,7 +282,7 @@ function main(): void {
   function scheduleRecompile() {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      compile(input, output, threadTemplate, childTemplate);
+      compile(input, output, threadTemplate, childTemplate, index);
       broadcast();
     }, 100);
   }

@@ -5,6 +5,7 @@ import matter from "gray-matter";
 interface Target {
   name: string;
   output_path: string;
+  index?: string; // source file ID to use as index.html
 }
 
 type TargetsConfig = Record<string, Target>;
