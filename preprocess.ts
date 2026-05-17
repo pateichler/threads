@@ -30,7 +30,7 @@ function parseArgs(): {
   const command = args[0];
   if (!command) {
     console.error("Usage: node preprocess.js <command> [options]");
-    console.error("Commands: sync");
+    console.error("Commands: clean, sync");
     process.exit(1);
   }
 

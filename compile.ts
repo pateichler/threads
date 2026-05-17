@@ -133,15 +133,8 @@ function renderChild(
     .replace("{{PARENT_LINKS}}", parentLinks);
 }
 
-// Converts a slug like "/about/", "/about.html", or "/" into a relative file
-// path and its corresponding href, following Eleventy's permalink conventions.
 function slugToOutputPath(slug: string): { filePath: string; href: string } {
-  let p = slug.startsWith("/") ? slug.slice(1) : slug;
-  if (p === "" || p.endsWith("/")) {
-    p = p + "index.html";
-  } else if (!path.extname(p)) {
-    p = p + ".html";
-  }
+  const p = path.extname(slug) ? slug : slug + ".html";
   return { filePath: p, href: "/" + p };
 }
 

@@ -5,6 +5,7 @@
   "scripts": {
     "build": "tsc",
     "compile": "tsc && node compile.js",
+    "clean": "tsc && node preprocess.js clean",
     "sync": "tsc && node preprocess.js sync"
   },
   "dependencies": {
@@ -13,7 +14,7 @@
     "marked": "^12.0.0"
   },
   "devDependencies": {
-"@types/node": "^20.0.0",
+    "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
   }
 }

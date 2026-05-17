@@ -1,6 +1,2 @@
 node_modules/
-compile.js
-preprocess.js
-
-test/
-.claude/
+/*.js
