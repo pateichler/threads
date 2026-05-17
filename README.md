@@ -15,10 +15,11 @@ Only threads with a non-empty `targets` field get their own HTML page. Others ar
 ## Compiler
 
 ```bash
-npm run build
-node compile.js --input <dir> --output <dir> --template <dir> [--index <id>] [--serve] [--port <n>]
+threads compile --input <dir> --output <dir> [--template <dir>] [--base <path>] [--index <id>] [--serve] [--port <n>]
 ```
 
+- `--template <dir>` — folder containing `thread.html` and `child.html`; defaults to the bundled template
+- `--base <path>` — URL path prefix for all internal links (e.g. `/my-repo` for GitHub Pages)
 - `--index <id>` — thread filename (without `.md`) to also copy as `index.html` at the output root
 - `--serve` — watch input for changes, recompile, and serve output with live reload
 - `--port` — dev server port (default: 8080)
@@ -35,7 +36,7 @@ Two HTML files in the template folder:
 ## Preprocessor
 
 ```bash
-node preprocess.js <command> [options]
+threads pre <command> [options]
 ```
 
 ### `clean --input <dir>`
@@ -44,9 +45,11 @@ Resolves `parents` frontmatter fields across source files. For each `[[Parent]]`
 
 Useful when adding a new thread from Obsidian or a text editor without opening the parent file.
 
-### `sync --input <dir> --targets <json> [target-key...]`
+### `sync --input <dir> [--targets <json>] [target-key...]`
 
-Copies source files to target directories based on `targets.json`. A file is included if it has the target's `name` in its `targets` field, or if it is a direct child of a file that does. Tagged files keep their `targets` field trimmed to the current target; child-included files have `targets` removed.
+Copies source files to target directories based on a targets JSON file. A file is included if it has the target's `name` in its `targets` field, or if it is a direct child of a file that does. Tagged files keep their `targets` field trimmed to the current target; child-included files have `targets` removed.
+
+- `--targets <json>` — path to the targets JSON file; defaults to `targets.json` in the input directory
 
 Omitting `[target-key...]` builds all targets.
 
