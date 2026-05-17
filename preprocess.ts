@@ -30,7 +30,8 @@ function parseArgs(): {
   const args = process.argv.slice(2);
   const command = args[0];
   if (!command) {
-    console.error("Usage: node preprocess.js <command> [options]");
+    const bin = path.basename(process.argv[1]);
+    console.error(`Usage: ${bin} <command> [options]`);
     console.error("Commands: clean, sync");
     process.exit(1);
   }
@@ -140,7 +141,8 @@ function syncTarget(
 
 function cmdClean(flags: Record<string, string>): void {
   if (!flags.input) {
-    console.error("Usage: node preprocess.js clean --input <dir>");
+    const bin = path.basename(process.argv[1]);
+    console.error(`Usage: ${bin} clean --input <dir>`);
     process.exit(1);
   }
 
@@ -212,8 +214,9 @@ function cmdClean(flags: Record<string, string>): void {
 
 function cmdSync(flags: Record<string, string>, targetKeys: string[]): void {
   if (!flags.input || !flags.targets) {
+    const bin = path.basename(process.argv[1]);
     console.error(
-      "Usage: node preprocess.js sync --input <dir> --targets <json> [target-key...]"
+      `Usage: ${bin} sync --input <dir> --targets <json> [target-key...]`
     );
     process.exit(1);
   }

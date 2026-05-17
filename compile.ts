@@ -39,8 +39,9 @@ function parseArgs(): Args {
     }
   }
   if (!flags.input || !flags.output) {
+    const bin = path.basename(process.argv[1]);
     console.error(
-      "Usage: node compile.js --input <dir> --output <dir> [--template <dir>] [--serve] [--port <n>]"
+      `Usage: ${bin} --input <dir> --output <dir> [--template <dir>] [--serve] [--port <n>]`
     );
     process.exit(1);
   }
