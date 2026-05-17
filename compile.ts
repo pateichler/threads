@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import * as fs from "fs";
 import * as http from "http";
 import * as path from "path";
@@ -18,42 +17,13 @@ interface Thread {
 
 type ThreadMap = Record<string, Thread>;
 
-interface Args {
+export interface CompileOptions {
   input: string;
   output: string;
   template: string;
   serve: boolean;
   port: number;
-  index: string | null; // thread ID to copy to index.html
-}
-
-function parseArgs(): Args {
-  const args = process.argv.slice(2);
-  const flags: Record<string, string | boolean> = {};
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--serve") {
-      flags.serve = true;
-    } else if (args[i].startsWith("--")) {
-      flags[args[i].slice(2)] = args[i + 1];
-      i++;
-    }
-  }
-  if (!flags.input || !flags.output) {
-    const bin = path.basename(process.argv[1]);
-    console.error(
-      `Usage: ${bin} --input <dir> --output <dir> [--template <dir>] [--serve] [--port <n>]`
-    );
-    process.exit(1);
-  }
-  const defaultTemplate = path.join(__dirname, "..", "default-template");
-  return {
-    input: flags.input as string,
-    output: flags.output as string,
-    template: flags.template ? (flags.template as string) : defaultTemplate,
-    serve: flags.serve === true,
-    port: flags.port ? parseInt(flags.port as string, 10) : 8080,
-    index: flags.index ? (flags.index as string) : null,
-  };
+  index: string | null;
 }
 
 function parseWikilink(ref: string): string {
@@ -254,8 +224,8 @@ function startDevServer(outputDir: string, port: number): () => void {
   return broadcast;
 }
 
-function main(): void {
-  const { input, output, template, serve, port, index } = parseArgs();
+export function run(options: CompileOptions): void {
+  const { input, output, template, serve, port, index } = options;
 
   const threadTemplate = fs.readFileSync(
     path.join(template, "thread.html"),
@@ -292,4 +262,3 @@ function main(): void {
     });
 }
 
-main();

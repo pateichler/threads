@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import * as fs from "fs";
 import * as path from "path";
 import matter from "gray-matter";
@@ -22,33 +21,6 @@ interface SourceThread {
 
 type ThreadMap = Record<string, SourceThread>;
 
-function parseArgs(): {
-  command: string;
-  flags: Record<string, string>;
-  targetKeys: string[];
-} {
-  const args = process.argv.slice(2);
-  const command = args[0];
-  if (!command) {
-    const bin = path.basename(process.argv[1]);
-    console.error(`Usage: ${bin} <command> [options]`);
-    console.error("Commands: clean, sync");
-    process.exit(1);
-  }
-
-  const flags: Record<string, string> = {};
-  const targetKeys: string[] = [];
-  for (let i = 1; i < args.length; i++) {
-    if (args[i].startsWith("--")) {
-      flags[args[i].slice(2)] = args[i + 1];
-      i++;
-    } else {
-      targetKeys.push(args[i]);
-    }
-  }
-
-  return { command, flags, targetKeys };
-}
 
 function parseWikilink(ref: string): string {
   return ref.replace(/^\[\[/, "").replace(/\]\]$/, "");
@@ -139,14 +111,7 @@ function syncTarget(
   );
 }
 
-function cmdClean(flags: Record<string, string>): void {
-  if (!flags.input) {
-    const bin = path.basename(process.argv[1]);
-    console.error(`Usage: ${bin} clean --input <dir>`);
-    process.exit(1);
-  }
-
-  const inputDir = flags.input;
+export function clean(inputDir: string): void {
   const files = fs.readdirSync(inputDir).filter((f) => f.endsWith(".md"));
 
   // Read all files into memory before making any changes
@@ -212,20 +177,12 @@ function cmdClean(flags: Record<string, string>): void {
   }
 }
 
-function cmdSync(flags: Record<string, string>, targetKeys: string[]): void {
-  if (!flags.input || !flags.targets) {
-    const bin = path.basename(process.argv[1]);
-    console.error(
-      `Usage: ${bin} sync --input <dir> --targets <json> [target-key...]`
-    );
-    process.exit(1);
-  }
-
+export function sync(inputDir: string, targetsFile: string, targetKeys: string[]): void {
   const config: TargetsConfig = JSON.parse(
-    fs.readFileSync(flags.targets, "utf8")
+    fs.readFileSync(targetsFile, "utf8")
   );
-  const targetsJsonDir = path.dirname(path.resolve(flags.targets));
-  const threads = readThreads(flags.input);
+  const targetsJsonDir = path.dirname(path.resolve(targetsFile));
+  const threads = readThreads(inputDir);
   const keys = targetKeys.length > 0 ? targetKeys : Object.keys(config);
 
   for (const key of keys) {
@@ -237,17 +194,4 @@ function cmdSync(flags: Record<string, string>, targetKeys: string[]): void {
   }
 }
 
-function main(): void {
-  const { command, flags, targetKeys } = parseArgs();
 
-  if (command === "sync") {
-    cmdSync(flags, targetKeys);
-  } else if (command === "clean") {
-    cmdClean(flags);
-  } else {
-    console.error(`Unknown command: ${command}. Available: clean, sync`);
-    process.exit(1);
-  }
-}
-
-main();
