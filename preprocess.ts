@@ -136,6 +136,78 @@ function syncTarget(
   );
 }
 
+function cmdClean(flags: Record<string, string>): void {
+  if (!flags.input) {
+    console.error("Usage: node preprocess.js clean --input <dir>");
+    process.exit(1);
+  }
+
+  const inputDir = flags.input;
+  const files = fs.readdirSync(inputDir).filter((f) => f.endsWith(".md"));
+
+  // Read all files into memory before making any changes
+  const parsed: Record<string, { data: Record<string, unknown>; content: string }> = {};
+  for (const file of files) {
+    const id = path.basename(file, ".md");
+    const raw = fs.readFileSync(path.join(inputDir, file), "utf8");
+    const { data, content } = matter(raw);
+    parsed[id] = { data: data as Record<string, unknown>, content };
+  }
+
+  const modified = new Set<string>();
+
+  for (const file of files) {
+    const id = path.basename(file, ".md");
+    const { data } = parsed[id];
+
+    const rawParents: string[] = Array.isArray(data.parents)
+      ? data.parents
+      : typeof data.parents === "string"
+      ? [data.parents]
+      : [];
+
+    if (rawParents.length === 0) continue;
+
+    const unresolved: string[] = [];
+
+    for (const raw of rawParents) {
+      const parentId = parseWikilink(raw);
+      if (!parsed[parentId]) {
+        unresolved.push(raw);
+        continue;
+      }
+
+      // Prepend child to parent's threads, guarding against duplicates
+      const parentData = parsed[parentId].data;
+      const existing: string[] = Array.isArray(parentData.threads)
+        ? parentData.threads
+        : typeof parentData.threads === "string"
+        ? [parentData.threads]
+        : [];
+      const childWikilink = `[[${id}]]`;
+      if (!existing.includes(childWikilink)) {
+        parentData.threads = [childWikilink, ...existing];
+        modified.add(parentId);
+      }
+    }
+
+    // Update or remove parents field on this file
+    if (unresolved.length === 0) {
+      delete data.parents;
+    } else {
+      data.parents = unresolved;
+    }
+    if (unresolved.length < rawParents.length) modified.add(id);
+  }
+
+  for (const id of modified) {
+    const { data, content } = parsed[id];
+    const output = matter.stringify(content, data);
+    fs.writeFileSync(path.join(inputDir, `${id}.md`), output, "utf8");
+    console.log(`cleaned ${id}.md`);
+  }
+}
+
 function cmdSync(flags: Record<string, string>, targetKeys: string[]): void {
   if (!flags.input || !flags.targets) {
     console.error(
@@ -165,8 +237,10 @@ function main(): void {
 
   if (command === "sync") {
     cmdSync(flags, targetKeys);
+  } else if (command === "clean") {
+    cmdClean(flags);
   } else {
-    console.error(`Unknown command: ${command}. Available: sync`);
+    console.error(`Unknown command: ${command}. Available: clean, sync`);
     process.exit(1);
   }
 }
