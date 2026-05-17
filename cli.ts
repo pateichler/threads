@@ -55,9 +55,10 @@ switch (subcommand) {
         die(`Usage: ${bin} pre clean --input <dir>`);
       clean(flags.input);
     } else if (command === "sync") {
-      if (!flags.input || !flags.targets)
-        die(`Usage: ${bin} pre sync --input <dir> --targets <json> [target-key...]`);
-      sync(flags.input, flags.targets, positional);
+      if (!flags.input)
+        die(`Usage: ${bin} pre sync --input <dir> [--targets <json>] [target-key...]`);
+      const targetsFile = flags.targets ?? path.join(flags.input, "targets.json");
+      sync(flags.input, targetsFile, positional);
     } else {
       die(`Unknown command: ${command}. Available: clean, sync`);
     }
